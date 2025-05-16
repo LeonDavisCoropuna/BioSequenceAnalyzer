@@ -9,20 +9,20 @@ pdf_options:
 # BioSequenceAnalyzer by Leon Davis
 
 Un analizador de secuencias biológicas en C# que identifica ADN, ARN y proteínas, además de traducir secuencias de ADN a proteínas.
-github: 
+
+github: https://github.com/LeonDavisCoropuna/BioSequenceAnalyzer.git
 ## Características Principales
 
 - Identificación del tipo de secuencia (ADN, ARN o Proteína)
 - Traducción de secuencias de ADN a proteínas
 - Reconocimiento de codones STOP
-- Soporte para selenocisteína (U) en proteínas
 - Validación de secuencias inválidas
 
 ## Instalación
 
 1. Clona el repositorio:
    ```bash
-   git clone https://github.com/tu-usuario/BioSequenceAnalyzer.git
+   git clone https://github.com/LeonDavisCoropuna/BioSequenceAnalyzer.git
    ```
 
 2. Abre la solución en Visual Studio o ejecuta:
@@ -66,13 +66,14 @@ BioSequenceAnalyzer/
 ├── BioSequenceAnalyzer.Tests/    # Pruebas unitarias
 │   ├── BiologicalSequenceAnalyzerTests.cs
 │   ├── BioSequenceAnalyzer.Tests.csproj
-│   └── TestData/                # Datos para testing de [RCSB PDB](https://www.rcsb.org/downloads/fasta)
+│   └── TestData/                # Datos para testing de RCSB PDB
 │       ├── 4CiW_1.fasta         # 7 archivos .fasta
 │       ├── 4CS4_1.fasta
 │       └── ...
 │
 └── BioSequenceAnalyzer.sln       # Solución
 ```
+Los datos provienen de [RCSB PDB](https://www.rcsb.org/downloads/fasta).
 ## Implementación
 
 ### Clase `BiologicalSequenceAnalyzer`
@@ -98,7 +99,7 @@ public static SequenceType IdentifySequenceType(string sequence)
    - Rechaza mezclas que contengan tanto T como U
    - Verifica si es ADN puro (solo contiene A, C, G, T)
    - Verifica si es ARN puro (solo contiene A, C, G, U)
-   - Verifica si es proteína (contiene caracteres de aminoácidos, incluyendo U para selenocisteína)
+   - Verifica si es proteína (contiene caracteres de aminoácidos, sin incluir U)
    - Retorna Unknown para cualquier otro caso
 
 #### Método `IdentifyAminoAcid`
