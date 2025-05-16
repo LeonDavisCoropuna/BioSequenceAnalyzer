@@ -1,0 +1,39 @@
+# Build results
+bin/
+obj/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Rider / JetBrains IDE
+.idea/
+*.sln.iml
+
+# VS Code settings (opcional, si trabajas con VS Code)
+.vscode/
+
+# MacOS system files
+.DS_Store
+
+# Linux system files
+*.swp
+
+# Test results
+TestResults/
+
+# NuGet packages
+*.nupkg
+*.snupkg
+packages/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
