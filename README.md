@@ -1,11 +1,3 @@
----
-
-pdf_options:
-  format: A4
-  marign: 10mm 10mm
-
----
-
 # BioSequenceAnalyzer by Leon Davis
 
 Un analizador de secuencias biológicas en C# que identifica ADN, ARN y proteínas, además de traducir secuencias de ADN a proteínas.
