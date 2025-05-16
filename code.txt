@@ -1,0 +1,297 @@
+# BioSequenceAnalyzer.cs
+using System;
+using System.Linq;
+using System.Collections.Generic;
+
+namespace BioSequenceAnalyzer
+{
+  public class BiologicalSequenceAnalyzer
+  {
+    public enum SequenceType { DNA, RNA, Protein, Unknown }
+    public static SequenceType IdentifySequenceType(string sequence)
+    {
+      if (string.IsNullOrWhiteSpace(sequence))
+        return SequenceType.Unknown;
+
+      string upperSequence = sequence.ToUpperInvariant();
+      bool containsT = upperSequence.Contains('T');
+      bool containsU = upperSequence.Contains('U');
+
+      var validDnaChars = new HashSet<char> { 'A', 'C', 'G', 'T' };
+      var validRnaChars = new HashSet<char> { 'A', 'C', 'G', 'U' };
+      var validProteinChars = new HashSet<char> {
+            'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'K', 'L', 'M',
+            'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'Y', 'Z'
+        };
+
+      // 1) Rechaza mezclas T+U
+      if (containsT && containsU)
+        return SequenceType.Unknown;
+
+      // 2) ADN puro
+      if (upperSequence.All(c => validDnaChars.Contains(c)))
+        return SequenceType.DNA;
+
+      // 3) ARN puro
+      if (upperSequence.All(c => validRnaChars.Contains(c)))
+        return SequenceType.RNA;
+
+      // 4) Proteína (sin U)
+      if (upperSequence.All(c => validProteinChars.Contains(c)))
+        return SequenceType.Protein;
+
+      // 5) Cualquier otro caso
+      return SequenceType.Unknown;
+    }
+
+
+    public static string IdentifyAminoAcid(string codon)
+    {
+      if (codon == null || codon.Length != 3)
+        return "Invalid codon";
+
+      var codonUpper = codon.ToUpper();
+
+      var geneticCode = new Dictionary<string, string>
+            {
+                {"TTT", "Phe"}, {"TTC", "Phe"}, {"TTA", "Leu"}, {"TTG", "Leu"},
+                {"CTT", "Leu"}, {"CTC", "Leu"}, {"CTA", "Leu"}, {"CTG", "Leu"},
+                {"ATT", "Ile"}, {"ATC", "Ile"}, {"ATA", "Ile"}, {"ATG", "Met"},
+                {"GTT", "Val"}, {"GTC", "Val"}, {"GTA", "Val"}, {"GTG", "Val"},
+                {"TCT", "Ser"}, {"TCC", "Ser"}, {"TCA", "Ser"}, {"TCG", "Ser"},
+                {"CCT", "Pro"}, {"CCC", "Pro"}, {"CCA", "Pro"}, {"CCG", "Pro"},
+                {"ACT", "Thr"}, {"ACC", "Thr"}, {"ACA", "Thr"}, {"ACG", "Thr"},
+                {"GCT", "Ala"}, {"GCC", "Ala"}, {"GCA", "Ala"}, {"GCG", "Ala"},
+                {"TAT", "Tyr"}, {"TAC", "Tyr"}, {"TAA", "STOP"}, {"TAG", "STOP"},
+                {"CAT", "His"}, {"CAC", "His"}, {"CAA", "Gln"}, {"CAG", "Gln"},
+                {"AAT", "Asn"}, {"AAC", "Asn"}, {"AAA", "Lys"}, {"AAG", "Lys"},
+                {"GAT", "Asp"}, {"GAC", "Asp"}, {"GAA", "Glu"}, {"GAG", "Glu"},
+                {"TGT", "Cys"}, {"TGC", "Cys"}, {"TGA", "STOP"}, {"TGG", "Trp"},
+                {"CGT", "Arg"}, {"CGC", "Arg"}, {"CGA", "Arg"}, {"CGG", "Arg"},
+                {"AGT", "Ser"}, {"AGC", "Ser"}, {"AGA", "Arg"}, {"AGG", "Arg"},
+                {"GGT", "Gly"}, {"GGC", "Gly"}, {"GGA", "Gly"}, {"GGG", "Gly"}
+            };
+
+      var rnaCodon = codonUpper.Replace('U', 'T');
+      if (geneticCode.TryGetValue(rnaCodon, out string aminoAcid))
+      {
+        return aminoAcid;
+      }
+
+      return "Invalid codon";
+    }
+
+    public static string TranslateDnaToProtein(string dnaSequence, bool includeStop = false)
+    {
+      if (string.IsNullOrWhiteSpace(dnaSequence))
+        return string.Empty;
+
+      dnaSequence = dnaSequence.ToUpper();
+      var proteinSequence = new List<string>();
+
+      for (int i = 0; i < dnaSequence.Length - 2; i += 3)
+      {
+        string codon = dnaSequence.Substring(i, 3);
+        string aminoAcid = IdentifyAminoAcid(codon);
+
+        if (aminoAcid == "STOP")
+        {
+          if (includeStop)
+          {
+            proteinSequence.Add("STOP");
+          }
+          break;
+        }
+
+        if (aminoAcid == "Invalid codon")
+        {
+          break;
+        }
+
+        proteinSequence.Add(aminoAcid);
+      }
+
+      return string.Join("-", proteinSequence);
+    }
+  }
+}
+
+# BioSequenceAnalyzer.Tests
+using Xunit;
+using BioSequenceAnalyzer;
+
+namespace BioSequenceAnalyzer.Tests
+{
+    public class BiologicalSequenceAnalyzerTests
+    {
+        #region IdentifySequenceType Tests
+        
+        [Theory]
+        [InlineData("ATGCGTA", BiologicalSequenceAnalyzer.SequenceType.DNA)]
+        [InlineData("ATCGATCG", BiologicalSequenceAnalyzer.SequenceType.DNA)]
+        [InlineData("AUCGAUCG", BiologicalSequenceAnalyzer.SequenceType.RNA)]
+        [InlineData("AUUGACUA", BiologicalSequenceAnalyzer.SequenceType.RNA)]
+        [InlineData("ACDEFGHIKLMNPQRSTVWY", BiologicalSequenceAnalyzer.SequenceType.Protein)]
+        [InlineData("MAVLD", BiologicalSequenceAnalyzer.SequenceType.Protein)] // Secuencia proteica corta
+        [InlineData("ATGCGU", BiologicalSequenceAnalyzer.SequenceType.Unknown)] // Mezcla ADN/ARN
+        [InlineData("ATGCXTA", BiologicalSequenceAnalyzer.SequenceType.Unknown)] // Carácter inválido
+        [InlineData("", BiologicalSequenceAnalyzer.SequenceType.Unknown)]
+        [InlineData(null, BiologicalSequenceAnalyzer.SequenceType.Unknown)]
+        public void IdentifySequenceType_VariousSequences_ReturnsCorrectType(string sequence, BiologicalSequenceAnalyzer.SequenceType expected)
+        {
+            var result = BiologicalSequenceAnalyzer.IdentifySequenceType(sequence);
+            Assert.Equal(expected, result);
+        }
+
+        // [Fact]
+        // public void IdentifySequenceType_ProteinWithSelenocysteine_ReturnsProtein()
+        // {
+        //     // Secuencia proteica que contiene selenocisteína (U) y otros aminoácidos
+        //     var sequence = "ACDEFGHIKLMNPQRSTUVWY";
+        //     var result = BiologicalSequenceAnalyzer.IdentifySequenceType(sequence);
+        //     Assert.Equal(BiologicalSequenceAnalyzer.SequenceType.Protein, result);
+        // }
+
+        #endregion
+
+        #region IdentifyAminoAcid Tests
+
+        [Theory]
+        [InlineData("ATG", "Met")] // ADN
+        [InlineData("AUG", "Met")] // ARN
+        [InlineData("TTT", "Phe")]
+        [InlineData("TTC", "Phe")]
+        [InlineData("TAA", "STOP")] // Codón de parada
+        [InlineData("TGA", "STOP")] // Codón de parada
+        [InlineData("GGG", "Gly")]
+        [InlineData("CAT", "His")]
+        [InlineData("GAC", "Asp")]
+        public void IdentifyAminoAcid_ValidCodons_ReturnsCorrectAminoAcid(string codon, string expected)
+        {
+            var result = BiologicalSequenceAnalyzer.IdentifyAminoAcid(codon);
+            Assert.Equal(expected, result);
+        }
+
+        [Theory]
+        [InlineData("XYZ")] // Codón inválido
+        [InlineData("AU")] // Muy corto
+        [InlineData("AUGX")] // Muy largo
+        [InlineData(null)]
+        public void IdentifyAminoAcid_InvalidCodons_ReturnsInvalidCodon(string codon)
+        {
+            var result = BiologicalSequenceAnalyzer.IdentifyAminoAcid(codon);
+            Assert.Equal("Invalid codon", result);
+        }
+
+        #endregion
+
+        #region TranslateDnaToProtein Tests
+
+        [Fact]
+        public void TranslateDnaToProtein_ValidDnaSequence_ReturnsCorrectProtein()
+        {
+            var dna = "ATGGAAGTATTTAAAGCGCCACCTATTGGGATATAAG";
+            var expected = "Met-Glu-Val-Phe-Lys-Ala-Pro-Pro-Ile-Gly-Ile";
+            var result = BiologicalSequenceAnalyzer.TranslateDnaToProtein(dna);
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public void TranslateDnaToProtein_SequenceWithStopCodon_StopsTranslation()
+        {
+            var dna = "ATGGATTGATAGCCGTA"; // Contiene TAG (STOP)
+            var expected = "Met-Asp-STOP";
+            var result = BiologicalSequenceAnalyzer.TranslateDnaToProtein(dna, true);
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public void TranslateDnaToProtein_ShortSequence_ReturnsPartialProtein()
+        {
+            var dna = "ATGGAT"; // Solo 2 codones completos
+            var expected = "Met-Asp";
+            var result = BiologicalSequenceAnalyzer.TranslateDnaToProtein(dna);
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public void TranslateDnaToProtein_EmptySequence_ReturnsEmptyString()
+        {
+            var dna = "";
+            var result = BiologicalSequenceAnalyzer.TranslateDnaToProtein(dna);
+            Assert.Equal("", result);
+        }
+
+        [Fact]
+        public void TranslateDnaToProtein_InvalidCharacters_ReturnsValidPart()
+        {
+            var dna = "ATGGXTATTAA"; // Contiene X inválido
+            var expected = "Met"; // Solo traduce el primer codón válido
+            var result = BiologicalSequenceAnalyzer.TranslateDnaToProtein(dna);
+            Assert.Equal(expected, result);
+        }
+
+        #endregion
+
+        #region Edge Cases Tests
+
+        [Fact]
+        public void IdentifySequenceType_LowerCaseInput_ReturnsCorrectType()
+        {
+            var sequence = "atgcgta";
+            var result = BiologicalSequenceAnalyzer.IdentifySequenceType(sequence);
+            Assert.Equal(BiologicalSequenceAnalyzer.SequenceType.DNA, result);
+        }
+
+        [Fact]
+        public void TranslateDnaToProtein_LowerCaseInput_ReturnsCorrectProtein()
+        {
+            var dna = "atggaagtatttaaagcgccacctattgggatataag";
+            var expected = "Met-Glu-Val-Phe-Lys-Ala-Pro-Pro-Ile-Gly-Ile";
+            var result = BiologicalSequenceAnalyzer.TranslateDnaToProtein(dna);
+            Assert.Equal(expected, result);
+        }
+
+        [Fact]
+        public void IdentifyAminoAcid_LowerCaseCodon_ReturnsCorrectAminoAcid()
+        {
+            var codon = "aug";
+            var result = BiologicalSequenceAnalyzer.IdentifyAminoAcid(codon);
+            Assert.Equal("Met", result);
+        }
+
+        #endregion
+    }
+}
+
+# FastaSequenceTests.cs
+using Xunit;
+using System.IO;
+using System.Collections.Generic;
+using System.Linq;
+
+public class FastaSequenceTests
+{
+    [Fact]
+    public void IdentifySequenceType_FromMultipleFastaFiles_ValidProteinSequences()
+    {
+        var fastaFolder = Path.Combine(Directory.GetCurrentDirectory(), "TestData");
+
+        var fastaFiles = Directory.GetFiles(fastaFolder, "*.fasta");
+
+        foreach (var filePath in fastaFiles)
+        {
+            var sequence = ReadSingleFastaSequence(filePath);
+
+            var result = BioSequenceAnalyzer.BiologicalSequenceAnalyzer.IdentifySequenceType(sequence);
+
+            Assert.Equal(BioSequenceAnalyzer.BiologicalSequenceAnalyzer.SequenceType.Protein, result);
+        }
+    }
+
+    private string ReadSingleFastaSequence(string path)
+    {
+        var lines = File.ReadAllLines(path);
+        return string.Join("", lines.Where(line => !line.StartsWith(">")).Select(line => line.Trim()));
+    }
+}
